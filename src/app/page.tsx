@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, RefreshCw, Star, Bell, X } from "lucide-react";
 import { StockCard } from "@/components/StockCard";
-import { getFavorites, onStorageChange } from "@/lib/storage";
 import { useAlerts, type PriceAlert } from "@/lib/useAlerts";
+import { useFavorites } from "@/lib/useFavorites";
 import { useNotifications } from "@/lib/useNotifications";
 import { useStocks } from "@/lib/stockCache";
 
@@ -17,8 +17,8 @@ export default function DashboardPage() {
     lastUpdated,
     refresh,
   } = useStocks();
-  const [favorites, setFavorites] = useState<string[]>([]);
   const [checkingAlerts, setCheckingAlerts] = useState(false);
+  const { favorites, refresh: refreshFavorites } = useFavorites();
   const { alerts, removeAlert, refresh: refreshAlerts } = useAlerts();
   const {
     notifications,
@@ -34,13 +34,9 @@ export default function DashboardPage() {
   const firedAlerts = alerts.filter((a) => !!a.firedAt);
 
   useEffect(() => {
-    setFavorites(getFavorites());
+    refreshFavorites();
     refreshAlerts();
     refreshNotifs();
-    const off = onStorageChange(() => {
-      setFavorites(getFavorites());
-    });
-    return off;
   }, []);
 
   const stocks = useMemo(() => {
@@ -172,7 +168,7 @@ export default function DashboardPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {stocks.map((s) => (
-            <StockCard key={s.symbol} stock={s} isFav={true} />
+            <StockCard key={s.symbol} stock={s} />
           ))}
           {/* Favorites that weren't found in the current DSE list */}
           {favorites

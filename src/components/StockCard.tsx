@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { Star, Bell, BellOff, X } from "lucide-react";
 import type { Stock } from "@/lib/types";
-import { toggleFavorite } from "@/lib/storage";
 import { useAlerts } from "@/lib/useAlerts";
+import { useFavorites } from "@/lib/useFavorites";
 import { useState, useEffect } from "react";
 
 function fmt(n: number | null, digits = 2): string {
@@ -15,22 +15,15 @@ function fmt(n: number | null, digits = 2): string {
   });
 }
 
-export function StockCard({
-  stock,
-  isFav,
-  onToggle,
-}: {
-  stock: Stock;
-  isFav: boolean;
-  onToggle?: (symbol: string, next: boolean) => void;
-}) {
-  const [fav, setFav] = useState(isFav);
+export function StockCard({ stock }: { stock: Stock }) {
   const [alertPrice, setAlertPrice] = useState("");
   const [showInput, setShowInput] = useState(false);
   const { alerts, setAlert, removeAlert, getAlert } = useAlerts();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   const savedAlert = getAlert(stock.symbol);
   const alertFired = !!savedAlert?.firedAt;
+  const fav = isFavorite(stock.symbol);
 
   const change = stock.change ?? 0;
   const changePct = stock.changePercent ?? 0;
@@ -93,11 +86,7 @@ export function StockCard({
           <button
             type="button"
             aria-label={fav ? "Remove favorite" : "Add favorite"}
-            onClick={() => {
-              const next = toggleFavorite(stock.symbol);
-              setFav(next);
-              onToggle?.(stock.symbol, next);
-            }}
+            onClick={() => toggleFavorite(stock.symbol)}
             className="text-gray-500 hover:text-yellow-400 transition"
           >
             <Star

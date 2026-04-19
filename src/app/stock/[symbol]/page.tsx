@@ -5,12 +5,8 @@ import Link from "next/link";
 import { ArrowLeft, RefreshCw, Star, ExternalLink } from "lucide-react";
 import type { Stock } from "@/lib/types";
 import { TradingViewChart } from "@/components/TradingViewChart";
-import {
-  isFavorite,
-  toggleFavorite,
-  pushRecent,
-  onStorageChange,
-} from "@/lib/storage";
+import { pushRecent, onStorageChange } from "@/lib/storage";
+import { useFavorites } from "@/lib/useFavorites";
 
 function fmt(n: number | null, digits = 2): string {
   if (n === null || n === undefined || Number.isNaN(n)) return "—";
@@ -30,16 +26,19 @@ export default function StockDetailPage({
   const [stock, setStock] = useState<Stock | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [fav, setFav] = useState(false);
+  const {
+    isFavorite,
+    toggleFavorite,
+    refresh: refreshFavorites,
+  } = useFavorites();
 
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `/api/stock/${encodeURIComponent(symbol)}`,
-        { cache: "no-store" }
-      );
+      const res = await fetch(`/api/stock/${encodeURIComponent(symbol)}`, {
+        cache: "no-store",
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to fetch");
       setStock(json.data as Stock);
@@ -52,9 +51,9 @@ export default function StockDetailPage({
 
   useEffect(() => {
     pushRecent(symbol);
-    setFav(isFavorite(symbol));
+    refreshFavorites();
     load();
-    const off = onStorageChange(() => setFav(isFavorite(symbol)));
+    const off = onStorageChange(() => refreshFavorites());
     return off;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol]);
@@ -63,22 +62,18 @@ export default function StockDetailPage({
   const changePct = stock?.changePercent ?? 0;
   const up = change > 0;
   const down = change < 0;
+  const fav = isFavorite(symbol);
   const priceColor = up
     ? "text-accent"
     : down
-    ? "text-accent-down"
-    : "text-gray-300";
+      ? "text-accent-down"
+      : "text-gray-300";
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="btn !p-2"
-            aria-label="Back"
-            title="Back"
-          >
+          <Link href="/" className="btn !p-2" aria-label="Back" title="Back">
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
@@ -93,23 +88,14 @@ export default function StockDetailPage({
             className="btn"
             title="Refresh price"
           >
-            <RefreshCw
-              className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
-            />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>
           <button
             type="button"
-            onClick={() => {
-              const next = toggleFavorite(symbol);
-              setFav(next);
-            }}
+            onClick={() => toggleFavorite(symbol)}
             className={`btn ${fav ? "btn-primary" : ""}`}
           >
-            <Star
-              className={`w-4 h-4 ${
-                fav ? "fill-black" : ""
-              }`}
-            />
+            <Star className={`w-4 h-4 ${fav ? "fill-black" : ""}`} />
             <span>{fav ? "Favorited" : "Add to favorites"}</span>
           </button>
         </div>
@@ -148,9 +134,9 @@ export default function StockDetailPage({
           </div>
         ) : (
           <div className="text-sm text-gray-400">
-            Symbol <span className="text-gray-200">{symbol}</span> was not
-            found in today's DSE list (it may be suspended or delisted). The
-            chart below may still work if TradingView has historical data.
+            Symbol <span className="text-gray-200">{symbol}</span> was not found
+            in today's DSE list (it may be suspended or delisted). The chart
+            below may still work if TradingView has historical data.
           </div>
         )}
       </div>
@@ -172,7 +158,7 @@ export default function StockDetailPage({
       <div className="flex flex-wrap gap-3 text-xs text-gray-500">
         <a
           href={`https://www.dsebd.org/displayCompany.php?name=${encodeURIComponent(
-            symbol
+            symbol,
           )}`}
           target="_blank"
           rel="noreferrer"
@@ -182,7 +168,7 @@ export default function StockDetailPage({
         </a>
         <a
           href={`https://www.tradingview.com/symbols/DSEBD-${encodeURIComponent(
-            symbol
+            symbol,
           )}/`}
           target="_blank"
           rel="noreferrer"

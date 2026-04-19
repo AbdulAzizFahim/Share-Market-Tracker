@@ -20,6 +20,7 @@ async function redisCmd<T = unknown>(...args: (string | number)[]): Promise<T> {
 }
 
 const ALERTS_KEY = "dse:alerts";
+const FAVORITES_KEY = "dse:favorites";
 
 export interface PriceAlert {
   symbol: string;
@@ -137,4 +138,51 @@ export async function deleteNotification(id: string): Promise<void> {
 
 export async function clearAllNotifications(): Promise<void> {
   await redisCmd("DEL", NOTIFICATIONS_KEY);
+}
+
+// ---------- Favorites ----------
+
+export async function getFavorites(): Promise<string[]> {
+  try {
+    const raw = await redisCmd<string | null>("GET", FAVORITES_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as string[];
+  } catch {
+    return [];
+  }
+}
+
+async function saveFavorites(favorites: string[]) {
+  await redisCmd("SET", FAVORITES_KEY, JSON.stringify(favorites));
+}
+
+export async function addFavorite(symbol: string): Promise<string[]> {
+  const s = symbol.toUpperCase();
+  const favs = await getFavorites();
+  if (!favs.includes(s)) {
+    favs.push(s);
+    await saveFavorites(favs);
+  }
+  return favs;
+}
+
+export async function removeFavorite(symbol: string): Promise<string[]> {
+  const s = symbol.toUpperCase();
+  const favs = (await getFavorites()).filter((x) => x !== s);
+  await saveFavorites(favs);
+  return favs;
+}
+
+export async function toggleFavorite(symbol: string): Promise<{ isFavorite: boolean; favorites: string[] }> {
+  const s = symbol.toUpperCase();
+  const favs = await getFavorites();
+  if (favs.includes(s)) {
+    const updated = favs.filter((x) => x !== s);
+    await saveFavorites(updated);
+    return { isFavorite: false, favorites: updated };
+  } else {
+    const updated = [...favs, s];
+    await saveFavorites(updated);
+    return { isFavorite: true, favorites: updated };
+  }
 }

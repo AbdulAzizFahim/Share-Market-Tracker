@@ -4,26 +4,26 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Clock, X, Star, RefreshCw } from "lucide-react";
 import { StockAutocomplete } from "@/components/StockAutocomplete";
-import {
-  getFavorites,
-  getRecent,
-  clearRecent,
-  onStorageChange,
-  toggleFavorite,
-} from "@/lib/storage";
+import { getRecent, clearRecent, onStorageChange } from "@/lib/storage";
+import { useFavorites } from "@/lib/useFavorites";
 import { useStocks } from "@/lib/stockCache";
 
 export default function SearchPage() {
   const { stocks, loading, error, lastUpdated, refresh } = useStocks();
   const [query, setQuery] = useState("");
-  const [favs, setFavs] = useState<string[]>([]);
+  const {
+    favorites,
+    refresh: refreshFavorites,
+    toggleFavorite,
+    isFavorite,
+  } = useFavorites();
   const [recent, setRecent] = useState<string[]>([]);
 
   useEffect(() => {
-    setFavs(getFavorites());
+    refreshFavorites();
     setRecent(getRecent());
     const off = onStorageChange(() => {
-      setFavs(getFavorites());
+      refreshFavorites();
       setRecent(getRecent());
     });
     return off;
@@ -151,7 +151,7 @@ export default function SearchPage() {
         ) : (
           <ul className="divide-y divide-border rounded-xl border border-border overflow-hidden">
             {filtered.map((s) => {
-              const isFav = favs.includes(s.symbol);
+              const isFav = isFavorite(s.symbol);
               const change = s.change ?? 0;
               const up = change > 0;
               const down = change < 0;
@@ -163,10 +163,7 @@ export default function SearchPage() {
                   <button
                     type="button"
                     aria-label={isFav ? "Remove favorite" : "Add favorite"}
-                    onClick={() => {
-                      toggleFavorite(s.symbol);
-                      setFavs(getFavorites());
-                    }}
+                    onClick={() => toggleFavorite(s.symbol)}
                     className="text-gray-500 hover:text-yellow-400"
                   >
                     <Star
