@@ -18,6 +18,7 @@ export default function DashboardPage() {
     refresh,
   } = useStocks();
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [checkingAlerts, setCheckingAlerts] = useState(false);
   const { alerts, removeAlert, refresh: refreshAlerts } = useAlerts();
   const {
     notifications,
@@ -51,6 +52,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function checkAlerts() {
       const pending = alerts.filter((a) => !a.firedAt);
+      console.log("[client] Checking alerts, pending:", pending.length);
       if (!pending.length) return;
       try {
         const res = await fetch("/api/alerts/check", {
@@ -58,24 +60,46 @@ export default function DashboardPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ alerts: pending }),
         });
-        await res.json();
+        const result = await res.json();
+        console.log("[client] Alert check result:", result);
         refreshAlerts();
-      } catch {
+      } catch (e: any) {
+        console.error("[client] Alert check failed:", e);
         // silent — alert check is best-effort
       }
     }
 
-    const id = setInterval(
-      () => {
-        if (favorites.length > 0) {
-          refresh();
-          checkAlerts();
-        }
-      },
-      24 * 60 * 60 * 1000,
-    );
+    const id = setInterval(() => {
+      if (favorites.length > 0) {
+        console.log("[client] Running scheduled refresh and alert check");
+        refresh();
+        checkAlerts();
+      } else {
+        console.log("[client] Skipping scheduled check - no favorites");
+      }
+    }, 60 * 1000);
     return () => clearInterval(id);
   }, [favorites, refresh, alerts, refreshAlerts]);
+
+  async function manualAlertCheck() {
+    setCheckingAlerts(true);
+    const pending = alerts.filter((a) => !a.firedAt);
+    console.log("[client] Manual alert check, pending:", pending.length);
+    try {
+      const res = await fetch("/api/alerts/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ alerts: pending }),
+      });
+      const result = await res.json();
+      console.log("[client] Manual alert check result:", result);
+      refreshAlerts();
+    } catch (e: any) {
+      console.error("[client] Manual alert check failed:", e);
+    } finally {
+      setCheckingAlerts(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -102,6 +126,18 @@ export default function DashboardPage() {
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             <span className="hidden sm:inline">Refresh</span>
+          </button>
+          <button
+            type="button"
+            onClick={manualAlertCheck}
+            disabled={checkingAlerts}
+            className="btn"
+            title="Check alerts now"
+          >
+            <Bell
+              className={`w-4 h-4 ${checkingAlerts ? "animate-pulse" : ""}`}
+            />
+            <span className="hidden sm:inline">Check Alerts</span>
           </button>
           <button
             type="button"

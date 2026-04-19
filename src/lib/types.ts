@@ -13,10 +13,3 @@ export interface Stock {
   volume: number | null;
   updatedAt: string;
 }
-
-export interface StockSummary {
-  symbol: string;
-  ltp: number | null;
-  change: number | null;
-  changePercent: number | null;
-}

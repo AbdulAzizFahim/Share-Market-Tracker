@@ -72,7 +72,7 @@ export function StockCard({
             aria-label={savedAlert ? "Edit alert" : "Set price alert"}
             title={
               savedAlert
-                ? `Alert: ৳${savedAlert} (tap to edit)`
+                ? `Alert: ৳${savedAlert.targetPrice} (tap to edit)`
                 : "Set price alert"
             }
             onClick={() => setShowInput((v) => !v)}
@@ -118,7 +118,7 @@ export function StockCard({
             value={alertPrice}
             onChange={(e) => setAlertPrice(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && saveAlert()}
-            placeholder={savedAlert ? String(savedAlert) : "price"}
+            placeholder={savedAlert ? String(savedAlert.targetPrice) : "price"}
             className="w-24 bg-bg border border-border rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500"
             autoFocus
           />

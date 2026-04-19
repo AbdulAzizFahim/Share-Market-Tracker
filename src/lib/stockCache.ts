@@ -141,8 +141,3 @@ export function useStocks(): UseStocksResult {
 
   return { stocks, loading, error, lastUpdated, refresh };
 }
-
-/** Sync read of the cached list (no fetch). Useful for SSR-safe components. */
-export function getCachedStocks(): Stock[] {
-  return readCache()?.data ?? [];
-}

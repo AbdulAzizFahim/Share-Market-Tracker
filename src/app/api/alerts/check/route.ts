@@ -51,7 +51,9 @@ async function sendAlertEmail(
 
 export async function POST(req: NextRequest) {
   try {
+    console.log("[alerts-check] Starting alert check");
     const alerts = await getAllAlerts();
+    console.log(`[alerts-check] Total alerts: ${alerts.length}`);
 
     if (!alerts.length) {
       return NextResponse.json({ fired: [] });
@@ -59,11 +61,14 @@ export async function POST(req: NextRequest) {
 
     // Only check alerts that haven't fired yet
     const pending = alerts.filter((a) => !a.firedAt);
+    console.log(`[alerts-check] Pending alerts: ${pending.length}`, pending.map(a => ({ symbol: a.symbol, target: a.targetPrice })));
     if (!pending.length) {
       return NextResponse.json({ fired: [] });
     }
 
+    console.log("[alerts-check] Fetching stock prices");
     const stocks = await fetchAllStocks();
+    console.log(`[alerts-check] Fetched ${stocks.length} stocks`);
     const priceMap = new Map(stocks.map((s) => [s.symbol, s.ltp]));
 
     const fired: string[] = [];
@@ -71,8 +76,10 @@ export async function POST(req: NextRequest) {
     await Promise.all(
       pending.map(async (alert) => {
         const ltp = priceMap.get(alert.symbol);
+        console.log(`[alerts-check] ${alert.symbol}: target=${alert.targetPrice}, ltp=${ltp ?? 'NOT FOUND'}`);
         if (ltp == null) return;
         if (ltp <= alert.targetPrice) {
+          console.log(`[alerts-check] TRIGGERING ${alert.symbol}: ${ltp} <= ${alert.targetPrice}`);
           try {
             await sendAlertEmail(alert.symbol, alert.targetPrice, ltp);
             await markAlertFired(alert.symbol);
@@ -83,15 +90,20 @@ export async function POST(req: NextRequest) {
               { symbol: alert.symbol, targetPrice: alert.targetPrice, currentPrice: ltp }
             );
             fired.push(alert.symbol);
+            console.log(`[alerts-check] Successfully fired alert for ${alert.symbol}`);
           } catch (e: any) {
             console.error(`[alerts] Failed to send email for ${alert.symbol}: ${e.message}`);
           }
+        } else {
+          console.log(`[alerts-check] NOT triggering ${alert.symbol}: ${ltp} > ${alert.targetPrice}`);
         }
       })
     );
 
+    console.log(`[alerts-check] Completed. Fired alerts: ${fired.join(', ') || 'none'}`);
     return NextResponse.json({ fired });
   } catch (e: any) {
+    console.error(`[alerts-check] Error: ${e?.message ?? e}`);
     return NextResponse.json(
       { error: e?.message ?? "Alert check failed" },
       { status: 500 }

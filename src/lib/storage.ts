@@ -37,7 +37,7 @@ export function isFavorite(symbol: string): boolean {
   return getFavorites().includes(symbol.toUpperCase());
 }
 
-export function addFavorite(symbol: string) {
+function addFavorite(symbol: string) {
   const s = symbol.toUpperCase();
   const favs = getFavorites();
   if (!favs.includes(s)) {
@@ -46,7 +46,7 @@ export function addFavorite(symbol: string) {
   }
 }
 
-export function removeFavorite(symbol: string) {
+function removeFavorite(symbol: string) {
   const s = symbol.toUpperCase();
   const next = getFavorites().filter((x) => x !== s);
   write(FAV_KEY, next);
