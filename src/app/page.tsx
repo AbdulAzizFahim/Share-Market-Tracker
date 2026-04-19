@@ -65,15 +65,18 @@ export default function DashboardPage() {
       }
     }
 
-    const id = setInterval(() => {
-      if (favorites.length > 0) {
-        console.log("[client] Running scheduled refresh and alert check");
-        refresh();
-        checkAlerts();
-      } else {
-        console.log("[client] Skipping scheduled check - no favorites");
-      }
-    }, 60 * 1000);
+    const id = setInterval(
+      () => {
+        if (favorites.length > 0) {
+          console.log("[client] Running scheduled refresh and alert check");
+          refresh();
+          checkAlerts();
+        } else {
+          console.log("[client] Skipping scheduled check - no favorites");
+        }
+      },
+      24 * 60 * 60 * 1000,
+    );
     return () => clearInterval(id);
   }, [favorites, refresh, alerts, refreshAlerts]);
 
