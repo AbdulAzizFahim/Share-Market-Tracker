@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   title: "DSE Watch — Bangladesh Stock Tracker",
   description:
     "Personal tracker for Dhaka Stock Exchange (DSE) share prices and charts.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
